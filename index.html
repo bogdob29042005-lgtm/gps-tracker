@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14233b">
+  <title>GPS Tracker</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f3f6fb; color: #172338; }
+    main { width: min(760px, 100%); margin: 0 auto; padding: 24px 16px 48px; }
+    header { margin-bottom: 20px; }
+    h1 { margin: 0 0 6px; font-size: clamp(26px, 5vw, 36px); }
+    .muted { color: #617089; }
+    .panel { background: white; border: 1px solid #e0e7f0; border-radius: 18px; padding: 18px; margin: 14px 0; box-shadow: 0 6px 22px #1d355710; }
+    .status { display: flex; align-items: center; gap: 9px; font-weight: 650; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #9aa8ba; }
+    .dot.live { background: #16a36a; box-shadow: 0 0 0 4px #16a36a20; }
+    .dot.error { background: #d84b4b; }
+    button, .linkbtn { display: inline-flex; justify-content: center; align-items: center; gap: 8px; border: 0; border-radius: 12px; padding: 13px 17px; font-size: 16px; font-weight: 650; text-decoration: none; cursor: pointer; }
+    button.primary { color: white; background: #1769e0; }
+    button.stop { color: #a32c2c; background: #fff0f0; }
+    button.secondary, .linkbtn { color: #1c4f91; background: #edf4ff; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .metric { background: #f6f8fc; padding: 13px; border-radius: 12px; min-width: 0; }
+    .metric small { display: block; color: #687991; margin-bottom: 5px; }
+    .metric strong { overflow-wrap: anywhere; font-size: 15px; }
+    iframe { width: 100%; height: 390px; border: 0; border-radius: 14px; background: #edf1f6; }
+    .share { display: flex; gap: 8px; }
+    .share input { min-width: 0; flex: 1; padding: 12px; border: 1px solid #d5deea; border-radius: 10px; font-size: 14px; }
+    .notice { background: #fff8e7; border: 1px solid #f1dfae; color: #73561a; border-radius: 12px; padding: 12px; font-size: 14px; line-height: 1.45; }
+    .hidden { display: none !important; }
+    footer { font-size: 13px; color: #75839a; line-height: 1.5; margin-top: 18px; }
+    @media (max-width: 480px) { .grid { grid-template-columns: 1fr 1fr; } iframe { height: 330px; } .share { flex-direction: column; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>📍 GPS Tracker</h1>
+    <div class="muted">Передача та перегляд місцеположення в реальному часі</div>
+  </header>
+
+  <section class="panel">
+    <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">Підключення…</span></div>
+    <p id="roleText" class="muted">Перевіряємо налаштування трекера.</p>
+    <div id="senderControls" class="actions hidden">
+      <button id="startBtn" class="primary">▶ Почати передачу</button>
+      <button id="stopBtn" class="stop" disabled>■ Зупинити</button>
+    </div>
+    <div id="viewerNote" class="notice hidden">Це спільна сторінка перегляду. Координати з’являться, коли власник телефону надасть дозвіл і натисне «Почати передачу».</div>
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top:0">Актуальні координати</h2>
+    <div class="grid">
+      <div class="metric"><small>Широта</small><strong id="lat">—</strong></div>
+      <div class="metric"><small>Довгота</small><strong id="lon">—</strong></div>
+      <div class="metric"><small>Точність GPS</small><strong id="accuracy">—</strong></div>
+      <div class="metric"><small>Останнє оновлення</small><strong id="updated">—</strong></div>
+    </div>
+    <div class="actions">
+      <a id="googleMaps" class="linkbtn hidden" target="_blank" rel="noopener">Відкрити в Google Maps ↗</a>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top:0">Карта</h2>
+    <iframe id="map" title="Карта місцеположення" loading="lazy"
+      src="https://maps.google.com/maps?q=Ukraine&z=5&output=embed"
+      referrerpolicy="no-referrer-when-downgrade"></iframe>
+  </section>
+
+  <section class="panel">
+    <h2 style="margin-top:0">Посилання для перегляду</h2>
+    <p class="muted">Надішліть це посилання людині, якій потрібно показати місцеположення. Будь-хто, хто має посилання, зможе переглядати координати.</p>
+    <div class="share">
+      <input id="shareUrl" readonly aria-label="Посилання для перегляду">
+      <button id="copyBtn" class="secondary">Копіювати</button>
+    </div>
+  </section>
+
+  <p id="errorBox" class="notice hidden"></p>
+  <footer>
+    Геолокація передається лише після явного натискання кнопки та дозволу браузера. Зупиніть передачу кнопкою «Зупинити». Сторінка має бути відкрита через HTTPS. На iPhone та Android браузер може призупиняти GPS у фоновому режимі або після блокування екрана.
+  </footer>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+  import { getDatabase, ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+
+  // 1) Замініть значення нижче на конфігурацію вашого Firebase Web App.
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBwQ-UjKQ86Ymjl_HlvSYSrOUpDBUS25Qg",
+  authDomain: "goforyou-5b4ca.firebaseapp.com",
+  projectId: "goforyou-5b4ca",
+  storageBucket: "goforyou-5b4ca.firebasestorage.app",
+  messagingSenderId: "1099389558771",
+  appId: "1:1099389558771:web:8365e69c98f414cf9bfc86",
+  measurementId: "G-869ZYR8YMM"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  let roomId = params.get("room");
+  const hasConfig = firebaseConfig.apiKey !== "YOUR_API_KEY" &&
+                    firebaseConfig.projectId !== "YOUR_PROJECT_ID" &&
+                    firebaseConfig.databaseURL.startsWith("https://") &&
+                    !firebaseConfig.databaseURL.includes("YOUR_DATABASE_NAME");
+
+  let watchId = null;
+  let db, auth, currentUser;
+
+  function setStatus(message, state = "") {
+    $("statusText").textContent = message;
+    $("statusDot").className = "dot" + (state ? " " + state : "");
+  }
+  function showError(message) {
+    $("errorBox").textContent = message;
+    $("errorBox").classList.remove("hidden");
+  }
+  function makeRoomId() {
+    const bytes = new Uint8Array(18);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+  }
+  function updateLocation(data) {
+    $("lat").textContent = Number(data.latitude).toFixed(6);
+    $("lon").textContent = Number(data.longitude).toFixed(6);
+    $("accuracy").textContent = `${Math.round(data.accuracy)} м`;
+    const date = data.updatedAt ? new Date(data.updatedAt) : null;
+    $("updated").textContent = date && !Number.isNaN(date.getTime())
+      ? date.toLocaleString("uk-UA") : "щойно";
+    const q = `${data.latitude},${data.longitude}`;
+    $("map").src = `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=17&output=embed`;
+    $("googleMaps").href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+    $("googleMaps").classList.remove("hidden");
+  }
+
+  async function init() {
+    if (!hasConfig) {
+      setStatus("Потрібне налаштування Firebase", "error");
+      showError("Відкрийте index.html і замініть заповнювачі в firebaseConfig на значення з Firebase Console. Інструкція є у README.md.");
+      $("roleText").textContent = "Спочатку налаштуйте Firebase.";
+      return;
+    }
+
+    if (!roomId) {
+      roomId = makeRoomId();
+      const newUrl = new URL(location.href);
+      newUrl.searchParams.set("room", roomId);
+      history.replaceState({}, "", newUrl);
+    }
+
+    $("shareUrl").value = location.href;
+    $("copyBtn").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText($("shareUrl").value);
+        $("copyBtn").textContent = "Скопійовано ✓";
+        setTimeout(() => $("copyBtn").textContent = "Копіювати", 1800);
+      } catch {
+        $("shareUrl").select();
+        document.execCommand("copy");
+        $("copyBtn").textContent = "Скопійовано ✓";
+      }
+    });
+
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getDatabase(app);
+    const credential = await signInAnonymously(auth);
+    currentUser = credential.user;
+
+    const roomRef = ref(db, `trackers/${roomId}`);
+    const roomSnapshot = await new Promise((resolve, reject) => {
+      const unsubscribe = onValue(roomRef, snap => {
+        unsubscribe();
+        resolve(snap);
+      }, reject);
+    });
+
+    const room = roomSnapshot.val();
+    const isOwner = !!room && room.ownerUid === currentUser.uid;
+
+    if (!room) {
+      // This browser creates the tracker and becomes its sender/owner.
+      await set(roomRef, {
+        ownerUid: currentUser.uid,
+        createdAt: Date.now(),
+        location: null
+      });
+      $("senderControls").classList.remove("hidden");
+      $("roleText").textContent = "Цей пристрій створив трекер. Натисніть кнопку, щоб почати передачу.";
+    } else if (isOwner) {
+      $("senderControls").classList.remove("hidden");
+      $("roleText").textContent = "Це пристрій-власник трекера. Ви можете почати або зупинити передачу.";
+    } else {
+      $("viewerNote").classList.remove("hidden");
+      $("roleText").textContent = "Режим перегляду. Цей пристрій не передає координати.";
+    }
+
+    onValue(ref(db, `trackers/${roomId}/location`), snap => {
+      const data = snap.val();
+      if (data && typeof data.latitude === "number" && typeof data.longitude === "number") {
+        updateLocation(data);
+        if (watchId === null) setStatus("Отримано актуальне місцеположення", "live");
+      }
+    }, error => showError("Не вдалося отримати оновлення: " + error.message));
+
+    $("startBtn").addEventListener("click", () => {
+      if (!isOwner) return;
+      if (!navigator.geolocation) {
+        showError("Цей браузер не підтримує геолокацію.");
+        return;
+      }
+      if (watchId !== null) return;
+
+      setStatus("Очікуємо дозвіл і сигнал GPS…");
+      $("startBtn").disabled = true;
+      $("stopBtn").disabled = false;
+
+      watchId = navigator.geolocation.watchPosition(async position => {
+        try {
+          await set(ref(db, `trackers/${roomId}/location`), {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            updatedAt: Date.now()
+          });
+          setStatus("Передача місцеположення активна", "live");
+        } catch (error) {
+          showError("Помилка передавання координат: " + error.message);
+          setStatus("Помилка передачі", "error");
+        }
+      }, error => {
+        showError("Помилка геолокації: " + error.message + ". Перевірте дозвіл на геолокацію та HTTPS.");
+        setStatus("Геолокацію не отримано", "error");
+        stopSharing();
+      }, {
+        enableHighAccuracy: true,
+        maximumAge: 3000,
+        timeout: 20000
+      });
+    });
+
+    $("stopBtn").addEventListener("click", stopSharing);
+    function stopSharing() {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+      $("startBtn").disabled = false;
+      $("stopBtn").disabled = true;
+      setStatus("Передачу зупинено");
+    }
+  }
+
+  init().catch(error => {
+    setStatus("Помилка підключення", "error");
+    showError("Firebase: " + error.message);
+  });
+</script>
+</body>
+</html>
