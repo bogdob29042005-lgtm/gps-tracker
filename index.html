@@ -95,14 +95,7 @@
   import { getDatabase, ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
   // 1) Замініть значення нижче на конфігурацію вашого Firebase Web App.
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  // Конфігурація Firebase Web App.
 const firebaseConfig = {
   apiKey: "AIzaSyBwQ-UjKQ86Ymjl_HlvSYSrOUpDBUS25Qg",
   authDomain: "goforyou-5b4ca.firebaseapp.com",
@@ -113,9 +106,6 @@ const firebaseConfig = {
   appId: "1:1099389558771:web:8365e69c98f414cf9bfc86",
   measurementId: "G-869ZYR8YMM"
 };
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 
   const $ = (id) => document.getElementById(id);
   const params = new URLSearchParams(location.search);
@@ -190,7 +180,8 @@ const analytics = getAnalytics(app);
 
     const roomRef = ref(db, `trackers/${roomId}`);
     const roomSnapshot = await new Promise((resolve, reject) => {
-      const unsubscribe = onValue(roomRef, snap => {
+      let unsubscribe = () => {};
+      unsubscribe = onValue(roomRef, snap => {
         unsubscribe();
         resolve(snap);
       }, reject);
