@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#14233b">
-<title>Реєстрація — приватне сполучення</title>
+<title>Hotel Guest Services — реєстрація гостя</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#172338;background:#f3f6fb}
 *{box-sizing:border-box}body{margin:0}main{max-width:760px;margin:auto;padding:24px 16px 48px}
@@ -25,20 +25,20 @@ iframe{width:100%;height:390px;border:0;border-radius:14px;background:#edf1f6}
 </style>
 </head>
 <body><main>
-<header><h1>📍 Реєстрація</h1><div class="muted">УКРАЇНСЬКА АСОЦІАЦІЯ ГОТЕЛІВ</div></header>
+<header><h1>🏨 Hotel Guest Services</h1><div class="muted">Приватне з'єднання пристроїв для гостьового супроводу</div></header>
 
 <section class="panel" id="rolePanel">
-  <h2 style="margin-top:0">Оберіть пристрій</h2>
-  <p class="muted">Комп'ютер показуватиме координати, телефон передаватиме їх.</p>
+  <h2 style="margin-top:0">Підтвердження реєстрації</h2>
+  <p class="muted">Оберіть роль пристрою. Для супроводу гість має надати явний дозвіл на передавання свого місцеположення.</p>
   <div class="actions">
-    <button class="primary" id="computerMode">Я на комп'ютері</button>
-    <button class="secondary" id="phoneMode">Я на телефоні</button>
+    <button class="primary" id="computerMode">Робоче місце адміністратора</button>
+    <button class="secondary" id="phoneMode">Пристрій гостя</button>
   </div>
 </section>
 
 <section class="panel hidden" id="computerPanel">
   <div class="status"><span class="dot" id="computerDot"></span><span id="computerStatus">Створюємо приватний сеанс…</span></div>
-  <p class="muted">Введи цей код на телефоні один раз. Після сполучення комп'ютер автоматично отримуватиме координати.</p>
+  <p class="muted">Код потрібен для приватного з'єднання з пристроєм гостя. Після з'єднання тут відображатиметься місцеположення лише за його згодою.</p>
   <div class="code" id="pairCode">--------</div>
   <div class="grid">
     <div class="metric"><small>Широта</small><strong id="lat">—</strong></div>
@@ -49,20 +49,20 @@ iframe{width:100%;height:390px;border:0;border-radius:14px;background:#edf1f6}
 </section>
 
 <section class="panel hidden" id="phonePanel">
-  <h2 style="margin-top:0">Підключення телефона</h2>
-  <p class="muted">Введи код, який показує комп'ютер. Після сполучення телефон автоматично попросить дозвіл на геолокацію.</p>
-  <input id="codeInput" inputmode="numeric" maxlength="8" placeholder="8-значний код" aria-label="Код сполучення">
-  <button class="primary" id="pairButton">Підключити та почати передачу</button>
+  <h2 style="margin-top:0">Підтвердження згоди гостя</h2>
+  <p class="muted">Введіть код, наданий адміністратором. Після з'єднання браузер окремо попросить дозвіл на передавання геолокації. Координати передаватимуться лише після вашої згоди.</p>
+  <input id="codeInput" inputmode="numeric" maxlength="8" placeholder="Код з 8 цифр" aria-label="Код приватного з’єднання">
+  <button class="primary" id="pairButton">Підтвердити згоду та почати передачу</button>
   <div class="status" style="margin-top:16px"><span class="dot" id="phoneDot"></span><span id="phoneStatus">Очікуємо підключення</span></div>
-  <p class="muted" id="phoneHint">Після успішного сполучення ця сторінка передаватиме координати, поки залишається відкритою.</p>
+  <p class="muted" id="phoneHint">Після підтвердження згоди ця сторінка передаватиме місцеположення, поки залишається відкритою. Передачу можна припинити, закривши сторінку або відкликавши дозвіл браузера.</p>
 </section>
 
 <section class="panel hidden" id="mapPanel">
-  <h2 style="margin-top:0">Карта місцеположення</h2>
-  <iframe id="map" title="Карта місцеположення" loading="lazy" src="https://maps.google.com/maps?q=Ukraine&z=5&output=embed"></iframe>
+  <h2 style="margin-top:0">Місцеположення підключеного пристрою</h2>
+  <iframe id="map" title="Місцеположення підключеного пристрою" loading="lazy" src="https://maps.google.com/maps?q=Ukraine&z=5&output=embed"></iframe>
 </section>
 <p class="notice hidden" id="errorBox"></p>
-<footer>Координати доступні лише двом сполученим анонімним обліковим записам Firebase. Не передавайте код стороннім. Телефон має залишатися з відкритою сторінкою; браузер може призупинити геолокацію у фоні. Передача починається лише після дозволу браузера.</footer>
+<footer>Це сервіс передавання місцеположення для гостьового супроводу, а не підтвердження бронювання чи оплати. Координати передаються лише після явної згоди гостя та дозволу браузера. Дані доступні сполученим пристроям. Не передавайте код стороннім. Для роботи сторінка на телефоні має залишатися відкритою.</footer>
 </main>
 
 <script type="module">
