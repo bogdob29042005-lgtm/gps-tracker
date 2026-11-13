@@ -196,25 +196,45 @@ const analytics = getAnalytics(app);
       }, reject);
     });
 
-    const room = roomSnapshot.val();
-    const isOwner = !!room && room.ownerUid === currentUser.uid;
+const room = roomSnapshot.val();
 
-    if (!room) {
-      // This browser creates the tracker and becomes its sender/owner.
-      await set(roomRef, {
-        ownerUid: currentUser.uid,
-        createdAt: Date.now(),
-        location: null
-      });
-      $("senderControls").classList.remove("hidden");
-      $("roleText").textContent = "Цей пристрій створив трекер. Натисніть кнопку, щоб почати передачу.";
-    } else if (isOwner) {
-      $("senderControls").classList.remove("hidden");
-      $("roleText").textContent = "Це пристрій-власник трекера. Ви можете почати або зупинити передачу.";
-    } else {
-      $("viewerNote").classList.remove("hidden");
-      $("roleText").textContent = "Режим перегляду. Цей пристрій не передає координати.";
-    }
+// Перевіряємо, чи є цей пристрій власником
+let isOwner = !!room && room.ownerUid === currentUser.uid;
+
+if (!room) {
+
+  // Створюємо нового власника трекера
+  await set(roomRef, {
+    ownerUid: currentUser.uid,
+    createdAt: Date.now(),
+    location: null
+  });
+
+  // Позначаємо поточний пристрій як власника
+  isOwner = true;
+
+  // Показуємо кнопки керування
+  $("senderControls").classList.remove("hidden");
+
+  $("roleText").textContent =
+    "Цей пристрій створив трекер. Натисніть кнопку, щоб почати передачу.";
+
+} else if (isOwner) {
+
+  // Якщо це вже відомий власник
+  $("senderControls").classList.remove("hidden");
+
+  $("roleText").textContent =
+    "Це пристрій-власник трекера. Ви можете почати або зупинити передачу.";
+
+} else {
+
+  // Інші пристрої можуть лише переглядати координати
+  $("viewerNote").classList.remove("hidden");
+
+  $("roleText").textContent =
+    "Режим перегляду. Цей пристрій не передає координати.";
+}
 
     onValue(ref(db, `trackers/${roomId}/location`), snap => {
       const data = snap.val();
